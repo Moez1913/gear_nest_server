@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port=process.env.PORT || 5000 ;
 
@@ -30,7 +30,10 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
      const equipmentCollection = client.db("equipmentDB").collection("equipments");
+
+
     app.post('/equipments',async(req,res)=>{
         const newEquipmet = req.body;
         const result = await equipmentCollection.insertOne(newEquipmet);
@@ -54,6 +57,49 @@ async function run() {
       } else {
         res.status(404).send({ message: "Equipment not found" });
       }})
+
+    //   get equipmet by id
+ app.get('/equipments/:id', async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+    
+  const equipment = await equipmentCollection.findOne(query);
+  if (equipment) {
+    res.send(equipment);
+  } else {
+    res.status(404).send({ message: "Equipment not found" });
+  }
+});
+
+app.delete('/equipments/:id', async (req, res) => {
+  const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+    const result = await equipmentCollection.deleteOne(query);
+    if (result.deletedCount === 1) {
+      res.send({ message: "Equipment deleted successfully" });
+    } else {
+      res.status(404).send({ message: "Equipment not found" });
+    } })
+    
+app.put('/equipments/:id', async (req, res) => {
+  const id = req.params.id;
+  const filter = { _id: new ObjectId(id) };
+  const options = { upsert: true };
+  const updatedEquipment = req.body;
+  const updateDoc = {
+    $set: {
+      name: updatedEquipment.name,
+      price: updatedEquipment.price,
+      image: updatedEquipment.image,
+      description: updatedEquipment.description,
+      quantity: updatedEquipment.quantity
+    }
+  };
+  const result = await equipmentCollection.updateOne(filter, updateDoc, options);
+  res.send(result);
+});
+
+  
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
