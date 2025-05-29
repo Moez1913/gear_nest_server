@@ -34,21 +34,21 @@ async function run() {
     const equipmentCollection = client.db("equipmentDB").collection("equipments");
     // get all equipments
     app.get('/equipments', async (req, res) => {
-      const cursor = equipmentCollection.find();
+      const cursor = equipmentCollection.find().limit(6);
       const result = await cursor.toArray();
       res.send(result);
     });
 
-   app.get('/equipments/email/:email', async (req, res) => {
-  const email = req.params.email;
-  const query = { userEmail: email };
-  const equipment = await equipmentCollection.find(query).toArray();
-  if (equipment && equipment.length > 0) {
-    res.send(equipment);
-  } else {
-    res.status(404).send({ message: "Equipment not found" });
-  }
-});
+    app.get('/equipments/email/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const equipment = await equipmentCollection.find(query).toArray();
+      if (equipment) {
+        res.send(equipment);
+      } else {
+        res.status(404).send({ message: "Equipment not found" });
+      }
+    })
 
     app.get('/equipments/:id', async (req, res) => {
       const id = req.params.id;
@@ -91,33 +91,29 @@ async function run() {
     })
 
     app.put('/equipments/:id', async (req, res) => {
-  const id = req.params.id;
-  if (!ObjectId.isValid(id)) {
-    return res.status(400).send({ message: "Invalid ID format" });
-  }
-  const filter = { _id: new ObjectId(id) };
-  const options = { upsert: false };
-  const updatedEquipment = req.body;
-  const updateDoc = {
-    $set: {
-      name: updatedEquipment.name,
-      price: updatedEquipment.price,
-      image: updatedEquipment.image,
-      description: updatedEquipment.description,
-      quantity: updatedEquipment.quantity,
-      itemName: updatedEquipment.itemName,
-      categoryName: updatedEquipment.categoryName,
-      rating: updatedEquipment.rating,
-      customization: updatedEquipment.customization,
-      processingTime: updatedEquipment.processingTime,
-      stockStatus: updatedEquipment.stockStatus,
-      userEmail: updatedEquipment.userEmail,
-      userName: updatedEquipment.userName
-    }
-  };
-  const result = await equipmentCollection.updateOne(filter, updateDoc, options);
-  res.send(result);
-});
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updatedEquipment = req.body;
+      const updateDoc = {
+        $set: {
+          image: updatedEquipment.image,
+          userEmail: updatedEquipment.userEmail,
+          userName: updatedEquipment.userName,
+          itemName: updatedEquipment.itemName,
+          categoryName: updatedEquipment.categoryName,
+          description: updatedEquipment.description,
+          price: updatedEquipment.price,
+          rating: updatedEquipment.rating,
+          customization: updatedEquipment.customization,
+          processingTime: updatedEquipment.processingTime,
+          stockStatus: updatedEquipment.stockStatus
+
+        }
+      };
+      const result = await equipmentCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
 
 
     // Send a ping to confirm a successful connection
