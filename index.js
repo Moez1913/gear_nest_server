@@ -42,7 +42,7 @@ const veryifyToken = (req, res, next) => {
     req.decoded = decoded;
     next();
   });
-};
+};   
 
 // verify Admin midleware
 const verifyAdmin= async(req,res,next)=>{
@@ -121,9 +121,11 @@ async function run() {
       .collection("equipments");
     const cartsCollection = client.db("equipmentDB").collection("carts");
     const usersCollection = client.db("equipmentDB").collection("users");
+    const paymentCollection = client.db("equipmentDB").collection("payments");
+    const wishlistCollection = client.db("equipmentDB").collection("wishlist");
 
     app.get("/equipments", async (req, res) => {
-      const result = await equipmentCollection.find().limit(6).toArray();
+      const result = await equipmentCollection.find().toArray();
       res.send(result);
     });
 
@@ -225,6 +227,32 @@ async function run() {
       res.send(result);
     });
 
+    app.post('/wishlist', veryifyToken, async (req, res) => {
+      const { productId } = req.body;
+      const email = req.decoded.email;
+      const quary = { _id: new ObjectId(productId) };
+      const item = await equipmentCollection.findOne(quary);
+      const wishlistItem = {
+        userEmail: email,
+        itemName: item.itemName,
+        image: item.image,
+        price: item.price,
+        quantity: 1,
+      };
+      const result = await wishlistCollection.insertOne(wishlistItem);
+      res.send(result);
+    });
+
+   app.post('/payment',async(req,res)=>{
+        const payment=req.body;
+        const {cartIds}=payment;
+        const id =cartIds.map(id => new ObjectId(id))
+        const result=await paymentCollection.insertOne(payment);
+        const deleteResult=await cartsCollection.deleteMany({_id:{$in:id}})
+        res.send({result,deleteResult})
+
+      })   
+
     app.patch("/carts/:id", async (req, res) => {
       const id = req.params.id;
       const quary = { _id: new ObjectId(id) };
@@ -244,6 +272,15 @@ async function run() {
         userEmail: email,
       };
       const result = await cartsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/wishlist/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = {
+        userEmail: email,
+      };
+      const result = await wishlistCollection.find(query).toArray();
       res.send(result);
     });
 
